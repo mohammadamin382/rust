@@ -168,6 +168,10 @@ language_item_table! {
     MetaSized,               sym::meta_sized,          meta_sized_trait,           Target::Trait,          GenericRequirement::Exact(0);
     PointeeSized,            sym::pointee_sized,       pointee_sized_trait,        Target::Trait,          GenericRequirement::Exact(0);
     Unsize,                  sym::unsize,              unsize_trait,               Target::Trait,          GenericRequirement::Minimum(1);
+    AlignOf,                 sym::mem_align_const,     align_const,                Target::AssocConst,     GenericRequirement::Exact(0);
+    SizeOf,                  sym::mem_size_const,      size_const,                 Target::AssocConst,     GenericRequirement::Exact(0);
+    IsZST,                   sym::mem_is_zst_const,    is_zst_const,               Target::AssocConst,     GenericRequirement::Exact(0);
+    IsNotZST,                sym::mem_is_non_zst_const,is_non_zst_const,           Target::AssocConst,     GenericRequirement::Exact(0);
     /// Trait injected by `#[derive(PartialEq)]`, (i.e. "Partial EQ").
     StructuralPeq,           sym::structural_peq,      structural_peq_trait,       Target::Trait,          GenericRequirement::None;
     Copy,                    sym::copy,                copy_trait,                 Target::Trait,          GenericRequirement::Exact(0);

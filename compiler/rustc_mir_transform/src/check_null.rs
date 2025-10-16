@@ -1,3 +1,4 @@
+use rustc_hir::LangItem;
 use rustc_index::IndexVec;
 use rustc_middle::mir::visit::{MutatingUseContext, NonMutatingUseContext, PlaceContext};
 use rustc_middle::mir::*;
@@ -59,40 +60,19 @@ fn insert_null_check<'tcx>(
         PlaceContext::NonMutatingUse(NonMutatingUseContext::SharedBorrow)
         | PlaceContext::MutatingUse(MutatingUseContext::Borrow) => {
             // Pointer should be checked unconditionally.
-            Operand::Constant(Box::new(ConstOperand {
-                span: source_info.span,
-                user_ty: None,
-                const_: Const::Val(ConstValue::from_bool(true), tcx.types.bool),
-            }))
+            Const::from_bool(tcx, true)
         }
         // Other usages of null pointers only are UB if the pointee is not a ZST.
         _ => {
-            let rvalue = Rvalue::NullaryOp(NullOp::SizeOf, pointee_ty);
-            let sizeof_pointee =
-                local_decls.push(LocalDecl::with_source_info(tcx.types.usize, source_info)).into();
-            stmts.push(Statement::new(
-                source_info,
-                StatementKind::Assign(Box::new((sizeof_pointee, rvalue))),
-            ));
-
-            // Check that the pointee is not a ZST.
-            let is_pointee_not_zst =
-                local_decls.push(LocalDecl::with_source_info(tcx.types.bool, source_info)).into();
-            stmts.push(Statement::new(
-                source_info,
-                StatementKind::Assign(Box::new((
-                    is_pointee_not_zst,
-                    Rvalue::BinaryOp(
-                        BinOp::Ne,
-                        Box::new((Operand::Copy(sizeof_pointee), zero.clone())),
-                    ),
-                ))),
-            ));
-
-            // Pointer needs to be checked only if pointee is not a ZST.
-            Operand::Copy(is_pointee_not_zst)
+            let is_zst_def_id = tcx.require_lang_item(LangItem::IsNotZST, source_info.span);
+            Const::from_unevaluated(tcx, is_zst_def_id).instantiate(tcx, &[pointee_ty.into()])
         }
     };
+    let pointee_should_be_checked = Operand::Constant(Box::new(ConstOperand {
+        span: source_info.span,
+        user_ty: None,
+        const_: pointee_should_be_checked,
+    }));
 
     // Check whether the pointer is null.
     let is_null = local_decls.push(LocalDecl::with_source_info(tcx.types.bool, source_info)).into();
